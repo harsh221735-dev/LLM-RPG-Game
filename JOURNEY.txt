@@ -1,0 +1,42 @@
+WAHT LEARNED:
+1. when using semantic chunking strategy instead of generating embedding for each sentence use window of size n to generate embeddings this also captures context from other sentences too
+
+LEARNING GOALS:
+4 components:
+1. vector DB:
+	goal:  
+	1. structure the text document in proper format for proper chunking and info retrieval like separating each charachters strengths , weakness their talking,style behaviour etc (idea: their behavior will decide wheather they play or not or how they fight in game)
+	COMPLETED:
+	1. IMPLEMENTED BASIC RAG 
+	2. IMPLEMENTED BASIC PIPELINE
+DONE	
+2. relational DB:
+	GOAL:
+	1. make relational DB with specified columns , day 2
+3. LLM Model :
+	GOAL:
+	1. prompt engineering to get desired output, day 3-4
+	COMPLETED:
+	1. USED AND TESTED NEW_MODEL
+4. game engine:
+	GOAL:
+	1. backend logic , day 4-7
+5. evaluation of rag and llm
+
+goal:1. for front end include character selection, vs bot or player (cpu = True for bot) to change the format of output
+2. create different vecdb of different players and based on id load that db only 
+3. evaluate rag output for normal chain splitter vs agent based chunking  
+
+Probelsm to solev:
+DELETE REPO LLM RPG AND CREATE NEW ONE WHERE NO .ENV FILE IS THERE
+1. when generate code and move from 1st page to 2nd when enetrd code make sure that user with id that generatd code onl moves to 2nd page
+2. add timer
+#3. make the text box available only when its their turn - done
+#4. make health bars and makeactual changes to health - done
+5. add more data of charachters
+6. sepeate eachcharch vector database and retirev accordingly 
+7. also when in 3rd page and reload it displays "Looking for match configurations..." instead of keeping reload on that redirect to 2nd page when that mesaage displays same for 2nd page rediefct to 1st page
+8. design 2 separate algo for semantic search 1 using traditional app and other using my starting from 1st and adding if the simsilaruty is below else new xhunck  
+
+
+
