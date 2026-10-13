@@ -1,13 +1,12 @@
 import load_models
 from dotenv import load_dotenv
-from fastapi import FastAPI
 from pydantic import BaseModel
 import time
 import requests
 import random
 from fastapi import FastAPI, HTTPException
 import regex as re
-import json
+from supabase import create_client, Client
 import os
 import groq
 from groq import Groq
@@ -47,9 +46,61 @@ def lob(payload: roomPayload):
         lobby[payload.code].update({f'{payload.player_id}':payload.char_id})
 
 
+
+# Initialize FastAPI app and Supabase client
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+@app.get('/database/{selected_player}')
+def load_player_info(selected_player: str):
+    try:
+        # Fetch the data from your table 
+        response1 = supabase.table("players").select('*').eq('id', selected_player).execute()   
+        print('attacker data raw:', response1.data)    
+        
+        # Check if the database actually returned a player
+        if not response1.data:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Player with ID {selected_player} not found"
+            )
+
+        # Extract data safely now that we know response1.data exists
+        player_data = response1.data[0]
+        
+        player_id1 = player_data['id']
+        player_name = player_data['player_name']
+        base_health = player_data['base_health']
+        base_attack = player_data['base_attack']    
+        base_defence = player_data['base_defence']  
+        base_speed = player_data['base_speed']  
+        base_stamina = player_data['base_stamina']  
+
+        # Return JSON output (FastAPI automatically serializes dicts)
+        return {
+            'output': [
+                player_id1,
+                player_name,
+                base_health,
+                base_attack,
+                base_defence,
+                base_speed,
+                base_stamina
+            ]
+        }
+        
+    except HTTPException:
+        # Re-raise the 404 error if triggered above
+        raise
+    except Exception as e:
+        # Catch any unexpected database connection or server errors
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
 class IdPayload(BaseModel):
     code: int
-
 
 @app.post('/init_stats')
 def get_charachter(payload: IdPayload):
@@ -72,25 +123,25 @@ def get_charachter(payload: IdPayload):
     opponent = {}
     
     # 2. FIX: Call the database function TWICE separately using 1 argument each
-    player_data = requests.get(url=f'http://127.0.0.1:8800/database/{player1_char_id}')
-    opponent_data = requests.get(url=f'http://127.0.0.1:8800/database/{player2_char_id}')
+    player_data = load_player_info(player1_char_id)
+    opponent_data = load_player_info(player2_char_id)
     
 
-    selected_char['player_id']   = player_data.json()['output'][0]      
-    selected_char['player_name']   = player_data.json()['output'][1]        
-    selected_char['curr_health']   = player_data.json()['output'][2]        
-    selected_char['curr_attack']   = player_data.json()['output'][3]        
-    selected_char['curr_defence']  = player_data.json()['output'][4]        
-    selected_char['curr_speed']    = player_data.json()['output'][5]        
-    selected_char['curr_stamina']  = player_data.json()['output'][6]        
+    selected_char['player_id']   = player_data['output'][0]      
+    selected_char['player_name']   = player_data['output'][1]        
+    selected_char['curr_health']   = player_data['output'][2]        
+    selected_char['curr_attack']   = player_data['output'][3]        
+    selected_char['curr_defence']  = player_data['output'][4]        
+    selected_char['curr_speed']    = player_data['output'][5]        
+    selected_char['curr_stamina']  = player_data['output'][6]        
 
-    opponent['player_id']   = opponent_data.json()['output'][0] 
-    opponent['player_name']   = opponent_data.json()['output'][1]   
-    opponent['curr_health']   = opponent_data.json()['output'][2]   
-    opponent['curr_attack']   = opponent_data.json()['output'][3]   
-    opponent['curr_defence']  = opponent_data.json()['output'][4]   
-    opponent['curr_speed']    = opponent_data.json()['output'][5]   
-    opponent['curr_stamina']  = opponent_data.json()['output'][6]   
+    opponent['player_id']   = opponent_data['output'][0] 
+    opponent['player_name']   = opponent_data['output'][1]   
+    opponent['curr_health']   = opponent_data['output'][2]   
+    opponent['curr_attack']   = opponent_data['output'][3]   
+    opponent['curr_defence']  = opponent_data['output'][4]   
+    opponent['curr_speed']    = opponent_data['output'][5]   
+    opponent['curr_stamina']  = opponent_data['output'][6]   
 
     game_room[code] = {f'{player1_id}':selected_char,f'{player2_id}':opponent,'current_attacker':None,'player1_id':player1_id,'player2_id':player2_id,'winner':None}  
 
@@ -164,23 +215,23 @@ def process_attack(payload: AttackPayload):
     
     current_opponent_name = lobby[payload.code][opponent_id]
 
-    player_data = requests.get(url=f'http://127.0.0.1:8800/database/{payload.char_id}')
-    opponent_data = requests.get(url=f'http://127.0.0.1:8800/database/{current_opponent_name}')
+    player_data = load_player_info(payload.char_id)
+    opponent_data = load_player_info(current_opponent_name)
         
 
-    curr_name = player_data.json()['output'][1] 
-    curr_health   = player_data.json()['output'][2]        
-    curr_attack   = player_data.json()['output'][3]        
-    curr_defence  = player_data.json()['output'][4]        
-    curr_speed   = player_data.json()['output'][5]        
-    curr_stamina  = player_data.json()['output'][6]        
+    curr_name = player_data['output'][1] 
+    curr_health   = player_data['output'][2]        
+    curr_attack   = player_data['output'][3]        
+    curr_defence  = player_data['output'][4]        
+    curr_speed   = player_data['output'][5]        
+    curr_stamina  = player_data['output'][6]        
 
-    oppo_curr_name = opponent_data.json()['output'][1] 
-    oppo_curr_health   = opponent_data.json()['output'][2]   
-    oppo_curr_attack   = opponent_data.json()['output'][3]   
-    oppo_curr_defence  = opponent_data.json()['output'][4]   
-    oppo_curr_speed    = opponent_data.json()['output'][5]   
-    oppo_curr_stamina  = opponent_data.json()['output'][6]   
+    oppo_curr_name = opponent_data['output'][1] 
+    oppo_curr_health   = opponent_data['output'][2]   
+    oppo_curr_attack   = opponent_data['output'][3]   
+    oppo_curr_defence  = opponent_data['output'][4]   
+    oppo_curr_speed    = opponent_data['output'][5]   
+    oppo_curr_stamina  = opponent_data['output'][6]   
     
 
     print('success 1')
@@ -232,8 +283,76 @@ def process_attack(payload: AttackPayload):
             model="openai/gpt-oss-20b",
             messages=[{"role": "user", "content": prompt}]
         )
-    # If successful, return the text content
-        return {"status": "success", "narration": response.choices[0].message.content}
+        result = response.choices[0].message.content
+        # LLM Execution 
+        '''output = llm(prompt, max_tokens=128, stop=["<|im_end|>"], echo=False)            
+        result = output['choices'][0]['text']   
+        result = response.text'''   
+        
+        print('result',result)  
+        #json_result = json.loads(result)   
+        #print('json:',json_result) 
+        
+        '''prediction = json_result['prediction']   
+        change_in_attacker_attributes = json_result['change_in_attacker_attributes']    
+        change_in_opponent_attributes = json_result['change_in_opponent_attributes']    
+        print('type:',type(change_in_opponent_attributes.get('health')))''' 
+        
+        # use regex instead 
+        prediction_match = re.search(r'"prediction"\s*:\s*"([^"]+)"', result)   
+        attacker_match = re.search(r'"change_in_attacker_attributes"\s*:\s*\{([^}]+)\}', result)    
+        opponent_match = re.search(r'"change_in_opponent_attributes"\s*:\s*\{([^}]+)\}', result)    
+        
+        # Helper function to extract individual key-value stats inside the brackets 
+        def extract_stats(block_text):  
+            if not block_text:  
+                return {}   
+            # Finds "key": value or 'key': value, even if numbers are negative  
+            pairs = re.findall(r'["\'](\w+)["\']\s*:\s*(-?\d+)', block_text)    
+            return {key: int(val) for key, val in pairs}    
+        
+        # 2. Parse out the data 
+        prediction = prediction_match.group(1) if prediction_match else None    
+        change_in_attacker_attributes = extract_stats(attacker_match.group(1)) if attacker_match else {}    
+        change_in_opponent_attributes = extract_stats(opponent_match.group(1)) if opponent_match else {}    
+        
+        # Print Results 
+        print(f"Prediction: {prediction}")  
+        print(f"Attacker Attributes: {change_in_attacker_attributes}")  
+        print(f"Opponent Attributes: {change_in_opponent_attributes}")  
+        # Accessing individual values safely:   
+        print(f"Opponent Health: {change_in_opponent_attributes.get('health', 0)}") 
+        
+        #prediction = json_result['prediction'] 
+            
+        
+        game_room[payload.code][payload.curr_attacker]['curr_health'] = game_room[payload.code][payload.curr_attacker]['curr_health'] + int(change_in_attacker_attributes.get('health','0'))    
+        game_room[payload.code][payload.curr_attacker]['curr_attack'] = game_room[payload.code][payload.curr_attacker]['curr_attack'] + int(change_in_attacker_attributes.get('attack',0))  
+        game_room[payload.code][payload.curr_attacker]['curr_defence'] = game_room[payload.code][payload.curr_attacker]['curr_defence'] + int(change_in_attacker_attributes.get('defence',0))   
+        game_room[payload.code][payload.curr_attacker]['curr_speed']   = game_room[payload.code][payload.curr_attacker]['curr_speed'] + int(change_in_attacker_attributes.get('speed',0))   
+        game_room[payload.code][payload.curr_attacker]['curr_stamina'] = game_room[payload.code][payload.curr_attacker]['curr_stamina'] + int(change_in_attacker_attributes.get('stamina',0))   
+        
+        print('before:',game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'])    
+        game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'] + int(change_in_opponent_attributes.get('health',0))  
+        game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_attack']  = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_attack'] + int(change_in_opponent_attributes.get('attack',0)) 
+        game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_defence'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_defence'] + int(change_in_opponent_attributes.get('defence',0))   
+        game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_speed']   = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_speed'] + int(change_in_opponent_attributes.get('speed',0))   
+        game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_stamina'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_stamina'] + int(change_in_opponent_attributes.get('stamina',0))   
+        
+        print('before:',game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'])    
+        # FIX 2: Safely pass turn alternation based on tracking context matching strings    
+        game_room[payload.code]['current_attacker'] = active_rooms[payload.curr_attacker]   
+        if payload.code not in battle_log:  
+            battle_log[payload.code] = []   
+        battle_log[payload.code].append(prediction) 
+        if len(battle_log[payload.code]) > 1:   
+            battle_log[payload.code].pop(0) 
+        return {    
+            'prediction': prediction,   
+            'game_room': game_room, 
+            'oppo_base_stats': [oppo_curr_health,oppo_curr_attack,oppo_curr_defence,oppo_curr_speed,oppo_curr_stamina], 
+            'player_base_stats': [curr_health,curr_attack, curr_defence, curr_speed,curr_stamina]   
+        }   
 
     except groq.RateLimitError as e:
         # This catches Groq's official 429 Rate Limit error explicitly
@@ -243,76 +362,7 @@ def process_attack(payload: AttackPayload):
         )
     
         
-    result = response.choices[0].message.content
-    # LLM Execution
-    '''output = llm(prompt, max_tokens=128, stop=["<|im_end|>"], echo=False)           
-    result = output['choices'][0]['text']
-    result = response.text'''
-
-    print('result',result)
-    #json_result = json.loads(result)
-    #print('json:',json_result)
-
-    '''prediction = json_result['prediction']
-    change_in_attacker_attributes = json_result['change_in_attacker_attributes']
-    change_in_opponent_attributes = json_result['change_in_opponent_attributes']
-    print('type:',type(change_in_opponent_attributes.get('health')))'''
-
-    # use regex instead
-    prediction_match = re.search(r'"prediction"\s*:\s*"([^"]+)"', result)
-    attacker_match = re.search(r'"change_in_attacker_attributes"\s*:\s*\{([^}]+)\}', result)
-    opponent_match = re.search(r'"change_in_opponent_attributes"\s*:\s*\{([^}]+)\}', result)
-
-    # Helper function to extract individual key-value stats inside the brackets
-    def extract_stats(block_text):
-        if not block_text:
-            return {}
-        # Finds "key": value or 'key': value, even if numbers are negative
-        pairs = re.findall(r'["\'](\w+)["\']\s*:\s*(-?\d+)', block_text)
-        return {key: int(val) for key, val in pairs}
-
-    # 2. Parse out the data
-    prediction = prediction_match.group(1) if prediction_match else None
-    change_in_attacker_attributes = extract_stats(attacker_match.group(1)) if attacker_match else {}
-    change_in_opponent_attributes = extract_stats(opponent_match.group(1)) if opponent_match else {}
-
-    # Print Results
-    print(f"Prediction: {prediction}")
-    print(f"Attacker Attributes: {change_in_attacker_attributes}")
-    print(f"Opponent Attributes: {change_in_opponent_attributes}")
-    # Accessing individual values safely:
-    print(f"Opponent Health: {change_in_opponent_attributes.get('health', 0)}")
- 
-    #prediction = json_result['prediction']
     
-
-    game_room[payload.code][payload.curr_attacker]['curr_health'] = game_room[payload.code][payload.curr_attacker]['curr_health'] + int(change_in_attacker_attributes.get('health','0'))
-    game_room[payload.code][payload.curr_attacker]['curr_attack'] = game_room[payload.code][payload.curr_attacker]['curr_attack'] + int(change_in_attacker_attributes.get('attack',0))
-    game_room[payload.code][payload.curr_attacker]['curr_defence'] = game_room[payload.code][payload.curr_attacker]['curr_defence'] + int(change_in_attacker_attributes.get('defence',0))
-    game_room[payload.code][payload.curr_attacker]['curr_speed']   = game_room[payload.code][payload.curr_attacker]['curr_speed'] + int(change_in_attacker_attributes.get('speed',0))
-    game_room[payload.code][payload.curr_attacker]['curr_stamina'] = game_room[payload.code][payload.curr_attacker]['curr_stamina'] + int(change_in_attacker_attributes.get('stamina',0))
-
-    print('before:',game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'])
-    game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'] + int(change_in_opponent_attributes.get('health',0))
-    game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_attack']  = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_attack'] + int(change_in_opponent_attributes.get('attack',0))
-    game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_defence'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_defence'] + int(change_in_opponent_attributes.get('defence',0))
-    game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_speed']   = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_speed'] + int(change_in_opponent_attributes.get('speed',0))
-    game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_stamina'] = game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_stamina'] + int(change_in_opponent_attributes.get('stamina',0))
-
-    print('before:',game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health'])
-    # FIX 2: Safely pass turn alternation based on tracking context matching strings
-    game_room[payload.code]['current_attacker'] = active_rooms[payload.curr_attacker]
-    if payload.code not in battle_log:
-        battle_log[payload.code] = []
-    battle_log[payload.code].append(prediction)
-    if len(battle_log[payload.code]) > 1:
-        battle_log[payload.code].pop(0)
-    return {
-        'prediction': prediction,
-        'game_room': game_room,
-        'oppo_base_stats': [oppo_curr_health,oppo_curr_attack,oppo_curr_defence,oppo_curr_speed,oppo_curr_stamina],
-        'player_base_stats': [curr_health,curr_attack, curr_defence, curr_speed,curr_stamina]
-    }
 
 class winner_payload(BaseModel):
     code: int

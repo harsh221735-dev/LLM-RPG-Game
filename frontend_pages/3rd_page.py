@@ -75,6 +75,8 @@ if opponent_id:
                 st.error('lobby not initilaized')
             else:
                 st.error('player not in lobby')
+            #time.sleep(2)
+            #st.rerun()
 
 
     # 🌟 ADD THIS CRITICAL CALL HERE:
