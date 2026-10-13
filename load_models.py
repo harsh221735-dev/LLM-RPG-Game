@@ -3,7 +3,7 @@ import torch
 from langchain_huggingface import HuggingFaceEmbeddings
 
 # loading main model
-from llama_cpp import Llama
+#from llama_cpp import Llama
 # 1. Load the model into your 8GB RAM CPU
 # we set n_ctx to 2048 to save RAM memory on your system
 '''llm = Llama(
