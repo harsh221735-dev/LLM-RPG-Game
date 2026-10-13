@@ -2,9 +2,12 @@ import streamlit as st
 import database
 import requests
 import time
+import os
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
 if st.session_state.code is not None:
     try:
-        url = f"http://127.0.0.1:8000/get_temp_room/{int(st.session_state.code)}"
+        url = f"{BACKEND_URL}/get_temp_room/{int(st.session_state.code)}"
         response = requests.get(url=url)
         
         # This will now correctly evaluate to False if a 404 happens
@@ -36,7 +39,7 @@ st.title("Choose Your Character")
 third_page = st.Page('frontend_pages/3rd_page.py', title='Third page')
 if st.session_state.start_battle:
     #requests.post(url='http://127.0.0.1:8000/upload_char',json={'player_id': st.session_state.user_id,'char_id':st.session_state.selected_character})
-    requests.post(url='http://127.0.0.1:8000/lobby',json={'code': st.session_state.code,'player_id':st.session_state.user_id,'char_id':st.session_state.selected_character})
+    requests.post(url=f'{BACKEND_URL}/lobby',json={'code': st.session_state.code,'player_id':st.session_state.user_id,'char_id':st.session_state.selected_character})
     st.switch_page(third_page)
 
 cards_data = [
@@ -58,7 +61,7 @@ for index, card in enumerate(cards_data):
 payload = {'player_id': st.session_state.user_id}
 
 if st.session_state.get('selected_character'):                                   
-    response = requests.get(url=f'http://127.0.0.1:8800/database/{st.session_state.selected_character}')
+    response = requests.get(url=f'{BACKEND_URL}/database/{st.session_state.selected_character}')
     
     # Check if Flask successfully found the player
     if response.status_code == 200:
@@ -80,7 +83,7 @@ if st.session_state.get('selected_character'):
         battle = st.form_submit_button(label='Start Battle')
         
     if battle:
-        response = requests.post(url='http://127.0.0.1:8000/assigning_players', json=payload)
+        response = requests.post(url=f'{BACKEND_URL}/assigning_players', json=payload)
         if response.json().get('status') == 'joined':    
             st.session_state.start_battle = True 
             st.rerun()   
@@ -98,7 +101,7 @@ if st.session_state.waiting_for_match and not st.session_state.start_battle:
         timer_text.markdown(f'Waiting for player. Time remaining: :red[{st.session_state.match_timer} seconds]')
         
         try:
-            response = requests.post(url='http://127.0.0.1:8000/assigning_players', json=payload)        
+            response = requests.post(url=f'{BACKEND_URL}/assigning_players', json=payload)        
             if response.json().get('status') == 'joined':       
                 st.session_state.start_battle = True 
                 st.session_state.waiting_for_match = False
@@ -113,5 +116,5 @@ if st.session_state.waiting_for_match and not st.session_state.start_battle:
         st.rerun()
     else:
         st.session_state.waiting_for_match = False
-        requests.post(url='http://127.0.0.1:8000/leave_queue', json=payload)
+        requests.post(url=f'{BACKEND_URL}/leave_queue', json=payload)
         timer_text.error('Matchmaking timed out. Please try again.')

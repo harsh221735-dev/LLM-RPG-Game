@@ -1,8 +1,11 @@
 import streamlit as st
 import requests
+import os
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 response = requests.post(
-                url='http://127.0.0.1:8000/curr_attacker',
+                url=f'{BACKEND_URL}/curr_attacker',
                 json={'code': int(st.session_state.code)}
             )
 if response.status_code == 200:

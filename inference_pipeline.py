@@ -8,8 +8,11 @@ import random
 from fastapi import FastAPI, HTTPException
 import regex as re
 import json
+import os
+import groq
+from groq import Groq
 
-llm, db = load_models.loaded_models()
+db = load_models.loaded_models()
 
 load_dotenv()
 app = FastAPI()
@@ -220,12 +223,31 @@ def process_attack(payload: AttackPayload):
 
     prompt_eg = ""
     # Build Prompt
-    prompt = f"<|im_start|>system\nYou are a smart next scenario predictor of a versus battle game.<|im_end|>\n<|im_start|>user\n'just give next scenario prediction in under 20 words and change in current attributes of attacker and opponent in positive numbers for decrease in attributes in opponent and attacker by carefully analyzing all parameters strictly in the format:{{\"prediction\": \"...\", \"change_in_attacker_attributes\": {{\"attack\":,\"defence\":,\"speed\":,\"stamina\":}},\"change_in_opponent_attributes\":{{\"attack\":,\"defence\":,\"speed\":,\"health\":}}}}; attacker: {curr_name} ,attacker_attributes :[attack={attacker_attack_chng},stamina={attacker_stamina_chng},speed={attacker_speed_chng}]; opponent: {current_opponent_name} ,opponent_attributes :[health={game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health']},speed={opponent_speed_chng},def={opponent_defence_chng}],{curr_name}'s_attack:{query},attacker's attack_info:{context},attribute_behaviour-'effects occur all time:attack consumes stamina based on its power, effects occur based on attack:depends on type and power of attack'.<|im_end|>\n<|im_start|>assistant\n"
+    prompt = f"<|im_start|>system\nYou are a smart next scenario predictor of a versus battle game and analyze wheather the attack will affect the opponent or not.<|im_end|>\n<|im_start|>user\n'just give next scenario prediction in under 20 words and change in current attributes of attacker and opponent in positive numbers for decrease in attributes in opponent and attacker in percentage but dont include sign by carefully analyzing all parameters strictly in the format:{{\"prediction\": \"...\", \"change_in_attacker_attributes\": {{\"attack\":,\"defence\":,\"speed\":,\"stamina\":}},\"change_in_opponent_attributes\":{{\"attack\":,\"defence\":,\"speed\":,\"health\":}}}};(note: numbers are negetive for atrribute decrese like stamina decreased and positive for attribute increase like regeneration) attacker: {curr_name} ,attacker_attributes :[attack={attacker_attack_chng},stamina={attacker_stamina_chng},speed={attacker_speed_chng}]; opponent: {current_opponent_name} ,opponent_attributes :[health={game_room[payload.code][active_rooms[payload.curr_attacker]]['curr_health']},speed={opponent_speed_chng},def={opponent_defence_chng}],{curr_name}'s_attack:{query},attacker's attack_info:{context},attribute_behaviour-'effects occur all time:attack consumes stamina based on its power, effects occur based on attack:depends on type and power of attack'.<|im_end|>\n<|im_start|>assistant\n"
    
+    client = Groq()
+# The SDK automatically looks for the GEMINI_API_KEY environment variable
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[{"role": "user", "content": prompt}]
+        )
+    # If successful, return the text content
+        return {"status": "success", "narration": response.choices[0].message.content}
 
+    except groq.RateLimitError as e:
+        # This catches Groq's official 429 Rate Limit error explicitly
+        raise HTTPException(
+            status_code=429, 
+            detail="Rate limit hit! Groq's free tier is overloaded. Try again in a minute."
+        )
+    
+        
+    result = response.choices[0].message.content
     # LLM Execution
-    output = llm(prompt, max_tokens=128, stop=["<|im_end|>"], echo=False)           
+    '''output = llm(prompt, max_tokens=128, stop=["<|im_end|>"], echo=False)           
     result = output['choices'][0]['text']
+    result = response.text'''
 
     print('result',result)
     #json_result = json.loads(result)

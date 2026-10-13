@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import secrets
 import time
+import os
 
 # Initialize session states
 if "user_matched" not in st.session_state:
@@ -9,6 +10,10 @@ if "user_matched" not in st.session_state:
 if "code" not in st.session_state:
     st.session_state.code = None
 
+
+
+# Fallback to localhost if BACKEND_URL isn't set (like during local development)
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 second_page = st.Page("frontend_pages/2nd_page.py", title="Second Page")
 
@@ -30,7 +35,7 @@ with st.form(key='gen_code'):
         st.session_state.code = generated_code
         
         payload = {'code_set': generated_code, 'user_id': st.session_state.user_id}
-        response = requests.post(url='http://127.0.0.1:8000/code_check', json=payload)
+        response = requests.post(url=f'{BACKEND_URL}/code_check', json=payload)
         
         if response.status_code == 200 and response.json().get('result') == 'passed':
             st.code(generated_code, language='text')
@@ -46,7 +51,7 @@ if st.session_state.code:
         # FIX: Sending code as integer to match Pydantic model
         payload = {'code': int(st.session_state.code)}
         try:
-            response = requests.post(url='http://127.0.0.1:8000/user_check', json=payload)
+            response = requests.post(url=f'{BACKEND_URL}/user_check', json=payload)
             if response.status_code == 200 and response.json().get('result') == 'success':
                 st.session_state.user_matched = True
                 break
@@ -72,7 +77,7 @@ with st.form(key='match_code'):
     
     if matched_code:
         payload = {'received_code': int(entered_code), 'user_id': st.session_state.user_id}
-        response = requests.post(url='http://127.0.0.1:8000/match_code', json=payload)
+        response = requests.post(url=f'{BACKEND_URL}/match_code', json=payload)
         
         if response.status_code == 200 and response.json().get('result') == 'success':
             st.session_state.code = entered_code

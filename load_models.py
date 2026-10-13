@@ -6,11 +6,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from llama_cpp import Llama
 # 1. Load the model into your 8GB RAM CPU
 # we set n_ctx to 2048 to save RAM memory on your system
-llm = Llama(
+'''llm = Llama(
     model_path="C:\\Users\\ADMIN\\Desktop\\llm_poke_game\\qwen2.5-3b-instruct-q4_k_m.gguf",
     n_ctx=4096,  # Context window size
     n_threads=4  # Number of CPU cores to use (adjust based on your CPU)
-)
+)'''
 
 #loading embedding model and database
 current_device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -28,4 +28,4 @@ db = Chroma(
     collection_metadata={"hnsw:space":'cosine'}
 )
 def loaded_models():
-    return llm,db
+    return db

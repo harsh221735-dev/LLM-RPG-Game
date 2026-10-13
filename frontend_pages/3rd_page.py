@@ -1,10 +1,12 @@
 import streamlit as st
 import requests
 import time
-import random
+import os
 from streamlit_autorefresh import st_autorefresh
 
-FASTAPI_URL = "http://127.0.0.1:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+FASTAPI_URL = f'{BACKEND_URL}'
 if 'latest_battle_outcome' not in st.session_state:
     st.session_state['latest_battle_outcome'] = ''
 
