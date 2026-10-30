@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import time
 import os
-from streamlit_autorefresh import st_autorefresh
+#from streamlit_autorefresh import st_autorefresh
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
@@ -35,8 +35,8 @@ if 'p2_stamina' not in st.session_state:
 col1, col2, col3 = st.columns([20,40,20])
 
 cards_data = [
-    {"id": 1, "title": "yuji itadori", "image": r"C:\Users\ADMIN\Desktop\llm_poke_game\images\yuji_itadori.jpg"},
-    {"id": 2, "title": "Megumi Fushiguro", "image": r"C:\Users\ADMIN\Desktop\llm_poke_game\images\megumi_fushiguro.jpg"}
+    {"id": 1, "title": "yuji itadori", "image": r"images\megumi_fushiguro.jpg"},
+    {"id": 4, "title": "Megumi Fushiguro", "image": r"images\yuji_itadori.jpg"}
 ]
 
 # 1. Map names and visuals safely

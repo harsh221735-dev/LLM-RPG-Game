@@ -3,3 +3,5 @@
 *.gguf
 .yml
 .sh
+/yuji itadori.txt
+yuji itadori.txt.dvc

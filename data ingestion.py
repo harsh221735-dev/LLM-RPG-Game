@@ -63,6 +63,7 @@ data = []
 
 #using semantic chunking 
 
+
 def semantic_1(chunks,window_size):
     i = 0
     n = window_size #window size
@@ -87,20 +88,26 @@ def semantic_1(chunks,window_size):
         #comapring
 
 # 1. Compute your normalized cosine similarity matrix
-        win1_tensor = torch.tensor(win1, dtype=torch.float32)
-        win2_tensor = torch.tensor(win2, dtype=torch.float32)
+        win1_arr = np.array(win1, dtype=np.float32)
+        win2_arr = np.array(win2, dtype=np.float32)
         
-        matrix1_norm = F.normalize(win1_tensor, p=2, dim=1) # (318, 768) p = eulicdean dist(2)
-        matrix2_norm = F.normalize(win2_tensor, p=2, dim=1) # (459, 768)
-        sim_matrix = torch.mm(matrix1_norm, matrix2_norm.t()) # (318, 459)
+        # 2. Compute the L2 (Euclidean) norm along the columns (axis=1)
+        # keepdims=True ensures the shape stays (N, 1) for correct broadcasting division
+        norm1 = np.linalg.norm(win1_arr, ord=2, axis=1, keepdims=True)
+        norm2 = np.linalg.norm(win2_arr, ord=2, axis=1, keepdims=True)
         
-        # 2. Your Exact Logic: Get the max score for each token, then average
-        # .max(dim=1) looks across the 459 tokens of Sentence 2 for each row
-        # Direction 1 (Sentence 1 to 2)
-        sim_1_to_2 = sim_matrix.max(dim=1).values.mean()
-
-# Direction 2 (Sentence 2 to 1)
-        sim_2_to_1 = sim_matrix.max(dim=0).values.mean()
+        # 3. Normalize the matrices (equivalent to F.normalize)
+        matrix1_norm = win1_arr / norm1
+        matrix2_norm = win2_arr / norm2
+        
+        # 4. Calculate the cosine similarity matrix using dot product
+        # .T is the transpose (equivalent to .t())
+        sim_matrix = matrix1_norm @ matrix2_norm.T
+        
+        # 5. Mirroring your exact logic: Get max score for each row, then average
+        # axis=1 looks across the columns; .max() gets the values, .mean() averages them
+        sim_1_to_2 = sim_matrix.max(axis=1).mean()
+        sim_2_to_1 = sim_matrix.max(axis=0).mean()
 
 # Combine them using F1-Score logic for a robust, symmetric scalar
         f1_similarity = 2 * (sim_1_to_2 * sim_2_to_1) / (sim_1_to_2 + sim_2_to_1)
@@ -117,7 +124,7 @@ def semantic_1(chunks,window_size):
     #print(len(sim_list))
     # finding percentile threshold
     sorted_list = sorted(sim_list.values())
-    percentile = 65
+    percentile = 70
     index = (percentile/100) * len(sim_list)
     threshold = sorted_list[int(index)]
     print('threshold',threshold)
@@ -141,11 +148,6 @@ def semantic_1(chunks,window_size):
         i = j
     print(splitted_chunks[:3])
     return sim_list,splitted_chunks
-
-
-#create embeddings and store in vector database
-
-#current_device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def create_embeddings(chunks, persist_directory):
     

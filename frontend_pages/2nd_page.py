@@ -43,8 +43,8 @@ if st.session_state.start_battle:
     st.switch_page(third_page)
 
 cards_data = [
-    {"id": 1, "title": "yuji itadori", "image": r"C:\Users\ADMIN\Desktop\llm_poke_game\images\yuji_itadori.jpg"},
-    {"id": 2, "title": "Megumi Fushiguro", "image": r"C:\Users\ADMIN\Desktop\llm_poke_game\images\megumi_fushiguro.jpg"}
+    {"id": 1, "title": "yuji itadori", "image": r"images\megumi_fushiguro.jpg"},
+    {"id": 4, "title": "Megumi Fushiguro", "image": r"images\yuji_itadori.jpg"}
 ]
 
 cols = st.columns(len(cards_data))

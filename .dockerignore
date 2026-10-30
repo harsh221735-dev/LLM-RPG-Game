@@ -1,0 +1,19 @@
+# Exclude entire local environments and version tracking histories
+.git
+.gitignore
+.venv
+venv
+ENV
+__pycache__/
+*.pyc
+
+# Exclude IDE configurations and data version tracking files
+.vscode
+.dvc
+.dvcignore
+yuji itadori.txt.dvc
+
+# Exclude documentation tracking files
+JOURNEY.md
+JOURNEY.txt
+model_download.py

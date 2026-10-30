@@ -38,5 +38,9 @@ DELETE REPO LLM RPG AND CREATE NEW ONE WHERE NO .ENV FILE IS THERE
 7. also when in 3rd page and reload it displays "Looking for match configurations..." instead of keeping reload on that redirect to 2nd page when that mesaage displays same for 2nd page rediefct to 1st page
 8. design 2 separate algo for semantic search 1 using traditional app and other using my starting from 1st and adding if the simsilaruty is below else new xhunck  
 
+DEPLYEMENT TASK:
+1. GIVE BAKEND URL TO KAGGLE SECRETS
+2. ADD THE IMAGES IN KAGGLE INPUT AND COPY THEIR PATH, FOR VEC DB JUST MAKE NEW USING THE HUGGFACE MODEL AND STOR IN OUTPUT
+3. CHANGE CODE TO LOOK GOR KAGGLE SECRETS INSTEAD ON ENV
 
 
